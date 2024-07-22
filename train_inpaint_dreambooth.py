@@ -776,6 +776,7 @@ def main(args):
     progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
     progress_bar.set_description("Steps")
     global_step = 0
+    mask_lat_distCreated = False
     loss_avg = AverageMeter()
     text_enc_context = nullcontext() if args.train_text_encoder else torch.no_grad()
     for epoch in range(args.num_train_epochs):
@@ -791,8 +792,10 @@ def main(args):
                     else:
                         latent_dist = vae.encode(batch["pixel_values"].to(dtype=weight_dtype)).latent_dist
                         masked_latent_dist = vae.encode(batch["masked_image_values"].to(dtype=weight_dtype)).latent_dist
+                        mask_lat_distCreated = True
                     latents = latent_dist.sample() * 0.18215
-                    masked_image_latents = masked_latent_dist.sample() * 0.18215
+                    if mask_lat_distCreated:
+                        masked_image_latents = masked_latent_dist.sample() * 0.18215
                     mask = F.interpolate(batch["mask_values"], scale_factor=1 / 8)
 
                 # Sample noise that we'll add to the latents
